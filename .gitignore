@@ -1,0 +1,18 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.vite/
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
