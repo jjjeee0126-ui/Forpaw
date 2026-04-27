@@ -86,7 +86,7 @@ const Register = () => {
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'dall-e-3',
+          model: 'gpt-image-1',
           prompt: `A cute fluffy heart shape made of ${colors.furType} ${colors.furColor} fur, the pet name "${petName}" written in ${colors.accentColor} rounded bold font on the heart, soft pastel gradient background from ${colors.bgColor1} to ${colors.bgColor2}, kawaii illustration style, clean white background card, Instagram-worthy pet portrait`,
           size: '1024x1024',
           n: 1,
@@ -98,7 +98,10 @@ const Register = () => {
       }
 
       const imageData = await imageRes.json();
-      setGeneratedImageUrl(imageData.data[0].url);
+      // gpt-image-1은 base64로 반환
+      const b64 = imageData.data[0].b64_json;
+      const imageUrl = b64 ? `data:image/png;base64,${b64}` : imageData.data[0].url;
+      setGeneratedImageUrl(imageUrl);
       setStep(4);
     } catch (err) {
       setError(err.message);
