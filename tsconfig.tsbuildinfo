@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/generate.ts","./src/pages/generatingpage.tsx","./src/pages/homepage.tsx","./src/pages/resultpage.tsx","./granite.config.ts","./vite.config.ts"],"version":"5.6.3"}

@@ -1,0 +1,55 @@
+:root {
+  --forpaw-primary: #FF6B35;
+  --forpaw-primary-light: #FFF3ED;
+  --forpaw-bg: #FFFFFF;
+  --forpaw-surface: #F4F4F5;
+  --forpaw-text: #191F28;
+  --forpaw-text-secondary: #8B95A1;
+  --forpaw-text-tertiary: #B0B8C1;
+  --forpaw-border: #E5E8EB;
+  --forpaw-radius: 16px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Pretendard', system-ui, sans-serif;
+  color: var(--forpaw-text);
+  background: var(--forpaw-bg);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input {
+  font: inherit;
+  border: none;
+  outline: none;
+}

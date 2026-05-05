@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.ait
+*.local
+.env
+.DS_Store
+.venv/
+__pycache__/
+lineart_service/outputs/
