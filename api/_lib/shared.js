@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { Redis } from '@upstash/redis';
 
 // ─── 환경변수 ───
 
@@ -7,6 +8,38 @@ export const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 export const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-1';
 export const OPENAI_IMAGE_SIZE = process.env.OPENAI_IMAGE_SIZE || '1024x1024';
 export const OPENAI_IMAGE_QUALITY = process.env.OPENAI_IMAGE_QUALITY || 'medium';
+
+// ─── Redis ───
+
+const redis = process.env.UPSTASH_REDIS_REST_URL
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null;
+
+const SESSION_TTL = 60 * 60 * 24 * 30; // 30일
+const SESSION_PREFIX = 'forpaw:session:';
+
+// in-memory fallback (로컬 개발용)
+const memSessions = new Map();
+
+async function getSession(sessionId) {
+  if (!sessionId) return null;
+  if (redis) {
+    const data = await redis.get(`${SESSION_PREFIX}${sessionId}`);
+    return data || null;
+  }
+  return memSessions.get(sessionId) || null;
+}
+
+async function setSession(sessionId, data) {
+  if (redis) {
+    await redis.set(`${SESSION_PREFIX}${sessionId}`, data, { ex: SESSION_TTL });
+  } else {
+    memSessions.set(sessionId, data);
+  }
+}
 
 // ─── 크레딧 정책 ───
 
@@ -59,18 +92,25 @@ export function cors(req, res) {
   return false;
 }
 
-// ─── Rate Limiter ───
+// ─── Rate Limiter (Redis 기반 or in-memory) ───
 
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_WINDOW = 60; // 초
 const RATE_LIMIT_MAX = 5;
+const memRateLimit = new Map();
 
-export function checkRateLimit(ip) {
+export async function checkRateLimit(ip) {
+  if (redis) {
+    const key = `forpaw:ratelimit:${ip}`;
+    const count = await redis.incr(key);
+    if (count === 1) await redis.expire(key, RATE_LIMIT_WINDOW);
+    return count <= RATE_LIMIT_MAX;
+  }
+  // in-memory fallback
   const now = Date.now();
-  let entry = rateLimitMap.get(ip);
+  let entry = memRateLimit.get(ip);
   if (!entry || now > entry.resetAt) {
-    entry = { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
-    rateLimitMap.set(ip, entry);
+    entry = { count: 0, resetAt: now + RATE_LIMIT_WINDOW * 1000 };
+    memRateLimit.set(ip, entry);
   }
   entry.count++;
   return entry.count <= RATE_LIMIT_MAX;
@@ -91,26 +131,31 @@ export function releaseSlot() {
   activeGenerations = Math.max(0, activeGenerations - 1);
 }
 
-// ─── 세션 (in-memory, serverless에서는 cold start 시 리셋됨) ───
-// 프로덕션에서는 Vercel KV 또는 Upstash Redis로 교체 권장
+// ─── 세션 관리 ───
 
-const sessions = new Map();
-
-export function getOrCreateSession(sessionId) {
-  if (!sessionId) return null;
-  if (!sessions.has(sessionId)) {
-    sessions.set(sessionId, {
-      credits: 0,
-      freeUsed: 0,
-      adsToday: 0,
-      lastAdDate: null,
-    });
-  }
-  return sessions.get(sessionId);
-}
+const DEFAULT_SESSION = {
+  credits: 0,
+  freeUsed: 0,
+  adsToday: 0,
+  lastAdDate: null,
+};
 
 export function createSessionId() {
   return crypto.randomBytes(16).toString('hex');
+}
+
+export async function getOrCreateSession(sessionId) {
+  if (!sessionId) return null;
+  let session = await getSession(sessionId);
+  if (!session) {
+    session = { ...DEFAULT_SESSION };
+    await setSession(sessionId, session);
+  }
+  return session;
+}
+
+export async function saveSession(sessionId, session) {
+  await setSession(sessionId, session);
 }
 
 export function signToken(sessionId) {
@@ -145,12 +190,10 @@ export function resetDailyAds(session) {
 
 // ─── Auth 헬퍼 ───
 
-export function getSessionFromReq(req) {
+export function getSessionIdFromReq(req) {
   const auth = req.headers.authorization || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-  const sessionId = verifyToken(token);
-  if (!sessionId) return null;
-  return getOrCreateSession(sessionId);
+  return verifyToken(token);
 }
 
 export function getClientIp(req) {

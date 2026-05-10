@@ -11,11 +11,12 @@
     "server": "node server/index.js"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "^1.0.0",
+    "@toss/tds-mobile": "^2.3.0",
+    "@upstash/redis": "^1.38.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.1.0",
-    "@apps-in-toss/web-framework": "^1.0.0",
-    "@toss/tds-mobile": "^2.3.0"
+    "react-router-dom": "^7.1.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

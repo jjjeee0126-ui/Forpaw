@@ -1,6 +1,8 @@
 import {
   cors,
-  getSessionFromReq,
+  getSessionIdFromReq,
+  getOrCreateSession,
+  saveSession,
   getClientIp,
   checkRateLimit,
   acquireSlot,
@@ -12,32 +14,31 @@ import {
   OPENAI_IMAGE_QUALITY,
 } from './_lib/shared.js';
 
+export const config = {
+  api: {
+    bodyParser: { sizeLimit: '10mb' },
+  },
+  maxDuration: 60, // Vercel Pro: 60초
+};
+
 function parseDataUrl(dataUrl) {
   const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl || '');
   if (!match) throw new Error('사진 데이터 형식이 올바르지 않아요');
   return { mimeType: match[1], buffer: Buffer.from(match[2], 'base64') };
 }
 
-export const config = {
-  api: {
-    bodyParser: { sizeLimit: '10mb' },
-  },
-};
-
 export default async function handler(req, res) {
   if (cors(req, res)) return;
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   // 인증
-  const session = getSessionFromReq(req);
-  if (!session) return res.status(401).json({ error: '인증이 필요해요' });
+  const sessionId = getSessionIdFromReq(req);
+  if (!sessionId) return res.status(401).json({ error: '인증이 필요해요' });
 
   // Rate limit
   const ip = getClientIp(req);
-  if (!checkRateLimit(ip)) {
+  const allowed = await checkRateLimit(ip);
+  if (!allowed) {
     return res.status(429).json({ error: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.' });
   }
 
@@ -45,6 +46,8 @@ export default async function handler(req, res) {
   if (!acquireSlot()) {
     return res.status(503).json({ error: '서버가 바빠요. 잠시 후 다시 시도해 주세요.' });
   }
+
+  const session = await getOrCreateSession(sessionId);
 
   // 크레딧 확인 + 선차감
   const isFree = session.freeUsed < CREDIT_POLICY.FREE_GENERATIONS;
@@ -58,6 +61,7 @@ export default async function handler(req, res) {
   } else {
     session.credits -= CREDIT_POLICY.CREDITS_PER_GENERATION;
   }
+  await saveSession(sessionId, session);
 
   try {
     if (!OPENAI_API_KEY) throw new Error('서버 설정 오류');
@@ -102,6 +106,7 @@ export default async function handler(req, res) {
     } else {
       session.credits += CREDIT_POLICY.CREDITS_PER_GENERATION;
     }
+    await saveSession(sessionId, session);
     res.status(500).json({ error: e.message || '이미지 생성에 실패했어요' });
   } finally {
     releaseSlot();

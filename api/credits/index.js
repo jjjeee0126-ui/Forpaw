@@ -1,15 +1,13 @@
-import { cors, getSessionFromReq, resetDailyAds, CREDIT_POLICY } from '../_lib/shared.js';
+import { cors, getSessionIdFromReq, getOrCreateSession, resetDailyAds, CREDIT_POLICY } from '../_lib/shared.js';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (cors(req, res)) return;
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  const sessionId = getSessionIdFromReq(req);
+  if (!sessionId) return res.status(401).json({ error: '인증이 필요해요' });
 
-  const session = getSessionFromReq(req);
-  if (!session) return res.status(401).json({ error: '인증이 필요해요' });
-
+  const session = await getOrCreateSession(sessionId);
   resetDailyAds(session);
   const freeRemaining = Math.max(0, CREDIT_POLICY.FREE_GENERATIONS - session.freeUsed);
 
