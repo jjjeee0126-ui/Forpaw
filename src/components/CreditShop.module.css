@@ -1,0 +1,177 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 900;
+  animation: fadeIn 0.2s ease;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 390px;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px 32px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.closeBtn {
+  font-size: 28px;
+  color: var(--forpaw-text-tertiary);
+  padding: 0 4px;
+}
+
+.balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--forpaw-primary-light);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+}
+
+.balanceLabel {
+  font-size: 14px;
+  color: var(--forpaw-text-secondary);
+}
+
+.balanceValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--forpaw-primary);
+}
+
+.info {
+  font-size: 12px;
+  color: var(--forpaw-text-tertiary);
+  text-align: right;
+  margin-bottom: 20px;
+}
+
+.plans {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.planCard {
+  flex: 1;
+  border: 1.5px solid var(--forpaw-border);
+  border-radius: 14px;
+  padding: 16px 8px 12px;
+  text-align: center;
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--forpaw-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.planCredits {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.planName {
+  font-size: 12px;
+  color: var(--forpaw-text-secondary);
+  margin-top: 2px;
+}
+
+.buyButton {
+  width: 100%;
+  padding: 8px 0;
+  background: var(--forpaw-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.adSection {
+  background: var(--forpaw-surface);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+}
+
+.adSectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.adSectionDesc {
+  font-size: 12px;
+  color: var(--forpaw-text-secondary);
+  margin-bottom: 12px;
+}
+
+.adButton {
+  padding: 10px 20px;
+  background: #fff;
+  color: var(--forpaw-primary);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1.5px solid var(--forpaw-primary);
+}
+
+.adButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--forpaw-text);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

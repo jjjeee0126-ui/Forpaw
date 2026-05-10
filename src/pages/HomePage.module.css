@@ -367,3 +367,31 @@
 .ctaActive:active {
   transform: scale(0.98);
 }
+
+.badgeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.badgeRow .badge {
+  margin-bottom: 0;
+}
+
+.creditBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: var(--forpaw-primary-light);
+  color: var(--forpaw-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ctaHint {
+  text-align: center;
+  font-size: 13px;
+  color: var(--forpaw-text-secondary);
+  margin-bottom: 8px;
+}

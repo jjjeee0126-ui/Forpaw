@@ -1,11 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { ChangeEvent } from 'react';
 import styles from './HomePage.module.css';
+import type { CreditStatus } from '../utils/credits';
+import { CREDIT_POLICY } from '../utils/credits';
 
 interface HomePageProps {
   onGenerate: (photo: string, name: string) => void;
   initialPhoto?: string;
   initialName?: string;
+  creditStatus?: CreditStatus;
+  onOpenShop?: () => void;
 }
 
 const MAX_NAME_LENGTH = 10;
@@ -23,6 +27,8 @@ export default function HomePage({
   onGenerate,
   initialPhoto = '',
   initialName = '',
+  creditStatus,
+  onOpenShop,
 }: HomePageProps) {
   const [photo, setPhoto] = useState<string>(initialPhoto);
   const [name, setName] = useState<string>(initialName);
@@ -84,7 +90,16 @@ export default function HomePage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <p className={styles.badge}>ForPaw</p>
+        <div className={styles.badgeRow}>
+          <p className={styles.badge}>ForPaw</p>
+          {creditStatus && (
+            <button type="button" className={styles.creditBadge} onClick={onOpenShop}>
+              {creditStatus.freeRemaining > 0
+                ? `무료 ${creditStatus.freeRemaining}회`
+                : `${creditStatus.credits} 크레딧`}
+            </button>
+          )}
+        </div>
         <h1 className={styles.title}>
           우리 아이 사진으로
           <br />
@@ -219,13 +234,23 @@ export default function HomePage({
       </div>
 
       <div className={styles.ctaWrap}>
+        {creditStatus && creditStatus.freeRemaining > 0 && canGenerate && (
+          <p className={styles.ctaHint}>광고 1회 시청 후 무료로 생성돼요</p>
+        )}
+        {creditStatus && creditStatus.freeRemaining <= 0 && !creditStatus.canGenerate && canGenerate && (
+          <p className={styles.ctaHint}>크레딧이 부족해요</p>
+        )}
         <button
           type="button"
           className={`${styles.ctaButton} ${canGenerate ? styles.ctaActive : ''}`}
           disabled={!canGenerate}
           onClick={() => onGenerate(photo, name)}
         >
-          키링 이미지 만들기
+          {creditStatus?.freeRemaining && creditStatus.freeRemaining > 0
+            ? '광고 보고 무료 생성하기'
+            : creditStatus?.canGenerate
+              ? `키링 이미지 만들기 (${CREDIT_POLICY.CREDITS_PER_GENERATION}크레딧)`
+              : '크레딧 충전하고 만들기'}
         </button>
       </div>
     </div>
