@@ -37,30 +37,41 @@ export interface CreditStatus {
 
 const STORAGE_KEY = 'forpaw_credits';
 
+const INITIAL_STATE: CreditState = {
+  credits: 0,
+  freeGenerationsUsed: 0,
+  adsWatchedToday: 0,
+  lastAdDate: null,
+};
+
 function getState(): CreditState {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    const initial: CreditState = {
-      credits: 0,
-      freeGenerationsUsed: 0,
-      adsWatchedToday: 0,
-      lastAdDate: null,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-    return initial;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      setState(INITIAL_STATE);
+      return { ...INITIAL_STATE };
+    }
+    const parsed = JSON.parse(raw);
+    // 필수 필드 검증
+    if (typeof parsed.credits !== 'number' || typeof parsed.freeGenerationsUsed !== 'number') {
+      setState(INITIAL_STATE);
+      return { ...INITIAL_STATE };
+    }
+    return parsed;
+  } catch {
+    setState(INITIAL_STATE);
+    return { ...INITIAL_STATE };
   }
-  return JSON.parse(raw);
 }
 
 function setState(state: CreditState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function resetDailyAdsIfNeeded(state: CreditState): CreditState {
+function withDailyAdsReset(state: CreditState): CreditState {
   const today = new Date().toISOString().slice(0, 10);
   if (state.lastAdDate !== today) {
-    state.adsWatchedToday = 0;
-    state.lastAdDate = today;
+    return { ...state, adsWatchedToday: 0, lastAdDate: today };
   }
   return state;
 }
@@ -78,6 +89,7 @@ export function canGenerate(): boolean {
   return false;
 }
 
+// 생성 시 크레딧 차감
 export function spendForGeneration(): void {
   const state = getState();
   if (state.freeGenerationsUsed < CREDIT_POLICY.FREE_GENERATIONS) {
@@ -88,9 +100,22 @@ export function spendForGeneration(): void {
   setState(state);
 }
 
+// 생성 실패 시 크레딧 환불
+export function refundGeneration(): void {
+  const state = getState();
+  if (state.freeGenerationsUsed > 0 &&
+      state.freeGenerationsUsed <= CREDIT_POLICY.FREE_GENERATIONS) {
+    state.freeGenerationsUsed -= 1;
+  } else {
+    state.credits += CREDIT_POLICY.CREDITS_PER_GENERATION;
+  }
+  setState(state);
+}
+
+// 광고 시청 보상
 export function rewardAdWatch(): boolean {
   let state = getState();
-  state = resetDailyAdsIfNeeded(state);
+  state = withDailyAdsReset(state);
   if (state.adsWatchedToday >= CREDIT_POLICY.MAX_DAILY_ADS) return false;
   state.credits += CREDIT_POLICY.AD_REWARD_CREDITS;
   state.adsWatchedToday += 1;
@@ -98,6 +123,7 @@ export function rewardAdWatch(): boolean {
   return true;
 }
 
+// 크레딧 구매
 export function purchaseCredits(planId: PlanId): boolean {
   const plan = CREDIT_PLANS.find((p) => p.id === planId);
   if (!plan) return false;
@@ -107,11 +133,9 @@ export function purchaseCredits(planId: PlanId): boolean {
   return true;
 }
 
+// 전체 상태 조회 (읽기 전용 — 상태 변경 없음)
 export function getCreditStatus(): CreditStatus {
-  let state = getState();
-  state = resetDailyAdsIfNeeded(state);
-  setState(state);
-
+  const state = withDailyAdsReset(getState());
   const freeRemaining = Math.max(0, CREDIT_POLICY.FREE_GENERATIONS - state.freeGenerationsUsed);
 
   return {

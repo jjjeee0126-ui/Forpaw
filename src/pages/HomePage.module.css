@@ -395,3 +395,25 @@
   color: var(--forpaw-text-secondary);
   margin-bottom: 8px;
 }
+
+.errorToast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #E53E3E;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  max-width: 340px;
+  text-align: center;
+  animation: toastIn 0.3s ease;
+  z-index: 100;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}

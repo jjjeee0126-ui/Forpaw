@@ -8,7 +8,7 @@ interface GeneratingPageProps {
   petName: string;
   showBannerAd?: boolean;
   onComplete: (result: GenerationResult) => void;
-  onError: () => void;
+  onError: (message: string) => void;
 }
 
 const TIPS = [
@@ -71,7 +71,7 @@ export default function GeneratingPage({
           </div>
           <h2 className={styles.errorTitle}>앗, 문제가 생겼어요</h2>
           <p className={styles.errorText}>{errorMsg}</p>
-          <button type="button" className={styles.retryButton} onClick={onError}>
+          <button type="button" className={styles.retryButton} onClick={() => onError(errorMsg)}>
             돌아가기
           </button>
         </div>

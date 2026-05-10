@@ -4,7 +4,7 @@ import GeneratingPage from './pages/GeneratingPage';
 import ResultPage from './pages/ResultPage';
 import AdModal from './components/AdModal';
 import CreditShop from './components/CreditShop';
-import { isInFreePhase, canGenerate, spendForGeneration, getCreditStatus } from './utils/credits';
+import { isInFreePhase, canGenerate, spendForGeneration, refundGeneration, getCreditStatus } from './utils/credits';
 import type { CreditStatus } from './utils/credits';
 
 export type AppStep = 'home' | 'generating' | 'result';
@@ -23,12 +23,14 @@ export default function App() {
   const [showAd, setShowAd] = useState(false);
   const [showShop, setShowShop] = useState(false);
   const [showBannerAd, setShowBannerAd] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [creditStatus, setCreditStatus] = useState<CreditStatus>(getCreditStatus());
 
   // 크레딧 게이트: HomePage에서 생성 요청 시
   const handleGenerate = useCallback((photo: string, name: string) => {
     setPetPhoto(photo);
     setPetName(name);
+    setErrorMessage('');
 
     if (isInFreePhase()) {
       // 무료: 리워드 광고 모달 필수 + 배너
@@ -50,7 +52,6 @@ export default function App() {
     setShowAd(false);
     spendForGeneration();
     setCreditStatus(getCreditStatus());
-    // 배너는 유지한 채로 생성 진행
     setStep('generating');
   }, []);
 
@@ -61,16 +62,23 @@ export default function App() {
 
   const handleComplete = useCallback((res: GenerationResult) => {
     setResult(res);
+    setShowBannerAd(false);
     setStep('result');
   }, []);
 
-  const handleError = useCallback(() => {
+  // 생성 실패: 크레딧 환불 + 에러 메시지 전달
+  const handleError = useCallback((message: string) => {
+    refundGeneration();
+    setShowBannerAd(false);
+    setErrorMessage(message);
+    setCreditStatus(getCreditStatus());
     setStep('home');
   }, []);
 
   const handleBackToHome = useCallback(() => {
-    setStep('home');
+    setShowBannerAd(false);
     setCreditStatus(getCreditStatus());
+    setStep('home');
   }, []);
 
   return (
@@ -82,6 +90,7 @@ export default function App() {
           initialName={petName}
           creditStatus={creditStatus}
           onOpenShop={() => setShowShop(true)}
+          errorMessage={errorMessage}
         />
       )}
       {step === 'generating' && (

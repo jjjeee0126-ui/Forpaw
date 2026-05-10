@@ -10,6 +10,7 @@ interface HomePageProps {
   initialName?: string;
   creditStatus?: CreditStatus;
   onOpenShop?: () => void;
+  errorMessage?: string;
 }
 
 const MAX_NAME_LENGTH = 10;
@@ -29,6 +30,7 @@ export default function HomePage({
   initialName = '',
   creditStatus,
   onOpenShop,
+  errorMessage,
 }: HomePageProps) {
   const [photo, setPhoto] = useState<string>(initialPhoto);
   const [name, setName] = useState<string>(initialName);
@@ -254,13 +256,19 @@ export default function HomePage({
           disabled={!canGenerate}
           onClick={() => onGenerate(photo, name)}
         >
-          {creditStatus?.freeRemaining && creditStatus.freeRemaining > 0
+          {creditStatus && creditStatus.freeRemaining > 0
             ? '광고 보고 무료 생성하기'
             : creditStatus?.canGenerate
               ? `키링 이미지 만들기 (${CREDIT_POLICY.CREDITS_PER_GENERATION}크레딧)`
               : '크레딧 충전하고 만들기'}
         </button>
       </div>
+
+      {errorMessage && (
+        <div className={styles.errorToast} role="alert">
+          {errorMessage} — 크레딧이 환불됐어요
+        </div>
+      )}
     </div>
   );
 }

@@ -178,6 +178,12 @@
   transform: scale(0.98);
 }
 
+.ctaButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* 광고 텍스트 링크 */
 .adLink {
   display: block;

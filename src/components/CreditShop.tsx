@@ -20,16 +20,23 @@ export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('basic');
   const [showAd, setShowAd] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
 
   const activePlan = CREDIT_PLANS.find((p) => p.id === selectedPlan)!;
 
   const handlePurchase = () => {
+    if (purchasing) return;
+    setPurchasing(true);
     // TODO: 실제 결제 연동 (토스페이먼츠)
+    // 결제 성공 콜백에서 purchaseCredits 호출해야 함
     purchaseCredits(selectedPlan);
     setPurchaseSuccess(activePlan.name);
     setStatus(getCreditStatus());
     onUpdate?.();
-    setTimeout(() => setPurchaseSuccess(null), 2000);
+    setTimeout(() => {
+      setPurchaseSuccess(null);
+      setPurchasing(false);
+    }, 2000);
   };
 
   const handleAdReward = () => {
@@ -44,7 +51,7 @@ export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
       <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
         <div className={styles.handle} />
 
-        <div className={styles.balance}>
+        <div className={styles.balance} aria-live="polite">
           <span className={styles.balanceLabel}>보유 크레딧</span>
           <span className={styles.balanceValue}>{status.credits}개</span>
         </div>
@@ -87,8 +94,13 @@ export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
         </div>
 
         {/* CTA: 결제하기 */}
-        <button type="button" className={styles.ctaButton} onClick={handlePurchase}>
-          {activePlan.price.toLocaleString()}원 결제하기
+        <button
+          type="button"
+          className={styles.ctaButton}
+          onClick={handlePurchase}
+          disabled={purchasing}
+        >
+          {purchasing ? '처리 중...' : `${activePlan.price.toLocaleString()}원 결제하기`}
         </button>
 
         {/* 광고: 텍스트 링크로 강등 */}
