@@ -6,6 +6,7 @@ import styles from './GeneratingPage.module.css';
 interface GeneratingPageProps {
   petPhoto: string;
   petName: string;
+  showBannerAd?: boolean;
   onComplete: (result: GenerationResult) => void;
   onError: () => void;
 }
@@ -21,6 +22,7 @@ const TIPS = [
 export default function GeneratingPage({
   petPhoto,
   petName,
+  showBannerAd = false,
   onComplete,
   onError,
 }: GeneratingPageProps) {
@@ -108,6 +110,13 @@ export default function GeneratingPage({
           <span className={styles.dot} style={{ animationDelay: '0.4s' }} />
         </div>
       </div>
+
+      {showBannerAd && (
+        <div className={styles.bannerAd}>
+          <span className={styles.bannerLabel}>AD</span>
+          <div className={styles.bannerContent}>광고 배너 영역</div>
+        </div>
+      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ export default function App() {
   const [result, setResult] = useState<GenerationResult | null>(null);
   const [showAd, setShowAd] = useState(false);
   const [showShop, setShowShop] = useState(false);
+  const [showBannerAd, setShowBannerAd] = useState(false);
   const [creditStatus, setCreditStatus] = useState<CreditStatus>(getCreditStatus());
 
   // 크레딧 게이트: HomePage에서 생성 요청 시
@@ -30,12 +31,14 @@ export default function App() {
     setPetName(name);
 
     if (isInFreePhase()) {
-      // 무료 기간: 광고 1회 필수
+      // 무료 기간: 광고 모달 필수
+      setShowBannerAd(false);
       setShowAd(true);
     } else if (canGenerate()) {
-      // 크레딧 충분: 바로 진행
+      // 유료: 바로 생성 + 배너 광고
       spendForGeneration();
       setCreditStatus(getCreditStatus());
+      setShowBannerAd(true);
       setStep('generating');
     } else {
       // 크레딧 부족: 충전 모달
@@ -47,6 +50,7 @@ export default function App() {
     setShowAd(false);
     spendForGeneration();
     setCreditStatus(getCreditStatus());
+    setShowBannerAd(false);
     setStep('generating');
   }, []);
 
@@ -84,6 +88,7 @@ export default function App() {
         <GeneratingPage
           petPhoto={petPhoto}
           petName={petName}
+          showBannerAd={showBannerAd}
           onComplete={handleComplete}
           onError={handleError}
         />
