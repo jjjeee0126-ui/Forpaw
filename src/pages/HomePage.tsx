@@ -33,7 +33,10 @@ export default function HomePage({
   const [photo, setPhoto] = useState<string>(initialPhoto);
   const [name, setName] = useState<string>(initialName);
   const [photoFileName, setPhotoFileName] = useState<string>('');
-  const [isNameTipOpen, setIsNameTipOpen] = useState<boolean>(true);
+  const [isNameTipOpen, setIsNameTipOpen] = useState<boolean>(() => {
+    const seen = localStorage.getItem('forpaw_name_tip_seen');
+    return !seen;
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nameTipRef = useRef<HTMLDivElement>(null);
 
@@ -64,15 +67,20 @@ export default function HomePage({
       return;
     }
 
+    const closeTip = () => {
+      setIsNameTipOpen(false);
+      localStorage.setItem('forpaw_name_tip_seen', '1');
+    };
+
     const handlePointerDown = (event: PointerEvent) => {
       if (!nameTipRef.current?.contains(event.target as Node)) {
-        setIsNameTipOpen(false);
+        closeTip();
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsNameTipOpen(false);
+        closeTip();
       }
     };
 
@@ -184,7 +192,7 @@ export default function HomePage({
                     type="button"
                     className={styles.popperClose}
                     aria-label="도움말 닫기"
-                    onClick={() => setIsNameTipOpen(false)}
+                    onClick={() => { setIsNameTipOpen(false); localStorage.setItem('forpaw_name_tip_seen', '1'); }}
                   >
                     닫기
                   </button>
