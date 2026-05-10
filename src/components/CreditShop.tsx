@@ -17,14 +17,16 @@ interface CreditShopProps {
 
 export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
   const [status, setStatus] = useState<CreditStatus>(getCreditStatus());
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('basic');
   const [showAd, setShowAd] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
 
-  const handlePurchase = (planId: PlanId) => {
+  const activePlan = CREDIT_PLANS.find((p) => p.id === selectedPlan)!;
+
+  const handlePurchase = () => {
     // TODO: 실제 결제 연동 (토스페이먼츠)
-    purchaseCredits(planId);
-    const plan = CREDIT_PLANS.find((p) => p.id === planId)!;
-    setPurchaseSuccess(plan.name);
+    purchaseCredits(selectedPlan);
+    setPurchaseSuccess(activePlan.name);
     setStatus(getCreditStatus());
     onUpdate?.();
     setTimeout(() => setPurchaseSuccess(null), 2000);
@@ -38,54 +40,67 @@ export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
   };
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.sheet}>
-        <div className={styles.header}>
-          <h2 className={styles.title}>크레딧 충전</h2>
-          <button type="button" className={styles.closeBtn} onClick={onClose}>
-            &times;
-          </button>
-        </div>
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.handle} />
 
         <div className={styles.balance}>
           <span className={styles.balanceLabel}>보유 크레딧</span>
-          <span className={styles.balanceValue}>{status.credits}</span>
-        </div>
-        <div className={styles.info}>
-          생성 1회 = {CREDIT_POLICY.CREDITS_PER_GENERATION}크레딧
+          <span className={styles.balanceValue}>{status.credits}개</span>
         </div>
 
-        <div className={styles.plans}>
-          {CREDIT_PLANS.map((plan) => (
-            <div key={plan.id} className={styles.planCard}>
-              {plan.badge && <span className={styles.badge}>{plan.badge}</span>}
-              <div className={styles.planCredits}>{plan.credits}</div>
-              <div className={styles.planName}>{plan.name}</div>
-              <button
-                type="button"
-                className={styles.buyButton}
-                onClick={() => handlePurchase(plan.id)}
-              >
-                {plan.price.toLocaleString()}원
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <div className={styles.adSection}>
-          <div className={styles.adSectionTitle}>무료 크레딧 받기</div>
-          <div className={styles.adSectionDesc}>
-            광고 시청 1회 = 1크레딧 (오늘 {status.adsRemainingToday}회 남음)
+        {/* 베이직: 풀 너비 강조 카드 */}
+        <button
+          type="button"
+          className={`${styles.featuredCard} ${selectedPlan === 'basic' ? styles.selected : ''}`}
+          onClick={() => setSelectedPlan('basic')}
+        >
+          <span className={styles.featuredBadge}>가장 인기</span>
+          <div className={styles.featuredInfo}>
+            <span className={styles.featuredCredits}>40 크레딧</span>
+            <span className={styles.featuredDesc}>5회 생성</span>
           </div>
+          <span className={styles.featuredPrice}>2,900원</span>
+        </button>
+
+        {/* 라이트 / 프리미엄: 보조 카드 */}
+        <div className={styles.subPlans}>
           <button
             type="button"
-            className={styles.adButton}
-            disabled={status.adsRemainingToday <= 0}
-            onClick={() => setShowAd(true)}
+            className={`${styles.subCard} ${selectedPlan === 'light' ? styles.selected : ''}`}
+            onClick={() => setSelectedPlan('light')}
           >
-            광고 보고 크레딧 받기
+            <span className={styles.subCredits}>16 크레딧</span>
+            <span className={styles.subDesc}>2회 생성</span>
+            <span className={styles.subPrice}>1,200원</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.subCard} ${selectedPlan === 'premium' ? styles.selected : ''}`}
+            onClick={() => setSelectedPlan('premium')}
+          >
+            <span className={styles.subBadge}>최저가</span>
+            <span className={styles.subCredits}>100 크레딧</span>
+            <span className={styles.subDesc}>12회 생성</span>
+            <span className={styles.subPrice}>5,900원</span>
           </button>
         </div>
+
+        {/* CTA: 결제하기 */}
+        <button type="button" className={styles.ctaButton} onClick={handlePurchase}>
+          {activePlan.price.toLocaleString()}원 결제하기
+        </button>
+
+        {/* 광고: 텍스트 링크로 강등 */}
+        {status.adsRemainingToday > 0 && (
+          <button
+            type="button"
+            className={styles.adLink}
+            onClick={() => setShowAd(true)}
+          >
+            무료 크레딧이 필요하신가요? 광고 보기 →
+          </button>
+        )}
 
         {purchaseSuccess && (
           <div className={styles.toast}>{purchaseSuccess} 구매 완료!</div>
