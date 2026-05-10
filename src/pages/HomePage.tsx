@@ -8,7 +8,7 @@ interface HomePageProps {
   onGenerate: (photo: string, name: string) => void;
   initialPhoto?: string;
   initialName?: string;
-  creditStatus?: CreditStatus;
+  creditStatus?: CreditStatus | null;
   onOpenShop?: () => void;
   errorMessage?: string;
 }

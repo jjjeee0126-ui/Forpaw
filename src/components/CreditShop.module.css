@@ -184,6 +184,14 @@
   transform: none;
 }
 
+/* 에러 */
+.error {
+  text-align: center;
+  font-size: 13px;
+  color: #E53E3E;
+  margin-top: 8px;
+}
+
 /* 광고 텍스트 링크 */
 .adLink {
   display: block;

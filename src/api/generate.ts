@@ -97,9 +97,13 @@ export async function generateKeyringImage(
 ): Promise<GenerationResult> {
   const prompt = buildPrompt(petName);
 
+  const token = localStorage.getItem('forpaw_token') || '';
   const response = await fetch(`${API_BASE}/api/generate-image`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
     body: JSON.stringify({
       name: petName,
       photoDataUrl,

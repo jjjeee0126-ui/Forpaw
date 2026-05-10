@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   CREDIT_PLANS,
   CREDIT_POLICY,
@@ -16,35 +16,50 @@ interface CreditShopProps {
 }
 
 export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
-  const [status, setStatus] = useState<CreditStatus>(getCreditStatus());
+  const [status, setStatus] = useState<CreditStatus | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('basic');
   const [showAd, setShowAd] = useState(false);
-  const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string>('');
 
   const activePlan = CREDIT_PLANS.find((p) => p.id === selectedPlan)!;
 
-  const handlePurchase = () => {
+  useEffect(() => {
+    getCreditStatus().then(setStatus).catch(() => {});
+  }, []);
+
+  const handlePurchase = async () => {
     if (purchasing) return;
     setPurchasing(true);
-    // TODO: 실제 결제 연동 (토스페이먼츠)
-    // 결제 성공 콜백에서 purchaseCredits 호출해야 함
-    purchaseCredits(selectedPlan);
-    setPurchaseSuccess(activePlan.name);
-    setStatus(getCreditStatus());
-    onUpdate?.();
-    setTimeout(() => {
-      setPurchaseSuccess(null);
+    setError('');
+    try {
+      await purchaseCredits(selectedPlan);
+      setPurchaseSuccess(activePlan.name);
+      const updated = await getCreditStatus();
+      setStatus(updated);
+      onUpdate?.();
+      setTimeout(() => setPurchaseSuccess(null), 2000);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '구매 실패');
+    } finally {
       setPurchasing(false);
-    }, 2000);
+    }
   };
 
-  const handleAdReward = () => {
-    rewardAdWatch();
-    setStatus(getCreditStatus());
-    onUpdate?.();
+  const handleAdReward = async () => {
+    try {
+      await rewardAdWatch();
+      const updated = await getCreditStatus();
+      setStatus(updated);
+      onUpdate?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '광고 보상 실패');
+    }
     setShowAd(false);
   };
+
+  if (!status) return null;
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -56,7 +71,6 @@ export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
           <span className={styles.balanceValue}>{status.credits}개</span>
         </div>
 
-        {/* 베이직: 풀 너비 강조 카드 */}
         <button
           type="button"
           className={`${styles.featuredCard} ${selectedPlan === 'basic' ? styles.selected : ''}`}
@@ -70,7 +84,6 @@ export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
           <span className={styles.featuredPrice}>2,900원</span>
         </button>
 
-        {/* 라이트 / 프리미엄: 보조 카드 */}
         <div className={styles.subPlans}>
           <button
             type="button"
@@ -93,7 +106,6 @@ export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
           </button>
         </div>
 
-        {/* CTA: 결제하기 */}
         <button
           type="button"
           className={styles.ctaButton}
@@ -103,7 +115,8 @@ export default function CreditShop({ onClose, onUpdate }: CreditShopProps) {
           {purchasing ? '처리 중...' : `${activePlan.price.toLocaleString()}원 결제하기`}
         </button>
 
-        {/* 광고: 텍스트 링크로 강등 */}
+        {error && <div className={styles.error}>{error}</div>}
+
         {status.adsRemainingToday > 0 && (
           <button
             type="button"

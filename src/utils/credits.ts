@@ -1,4 +1,4 @@
-// === 크레딧 정책 상수 ===
+// === 크레딧 정책 상수 (UI 표시용) ===
 
 export const CREDIT_POLICY = {
   FREE_GENERATIONS: 3,
@@ -15,135 +15,92 @@ export const CREDIT_PLANS = [
 
 export type PlanId = (typeof CREDIT_PLANS)[number]['id'];
 
-// === 상태 타입 ===
-
-interface CreditState {
-  credits: number;
-  freeGenerationsUsed: number;
-  adsWatchedToday: number;
-  lastAdDate: string | null;
-}
-
 export interface CreditStatus {
   credits: number;
-  freeGenerationsUsed: number;
   freeRemaining: number;
-  adsWatchedToday: number;
+  adsToday: number;
   adsRemainingToday: number;
   canGenerate: boolean;
 }
 
-// === 내부 스토리지 ===
+// === 세션 토큰 관리 ===
 
-const STORAGE_KEY = 'forpaw_credits';
+const TOKEN_KEY = 'forpaw_token';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
-const INITIAL_STATE: CreditState = {
-  credits: 0,
-  freeGenerationsUsed: 0,
-  adsWatchedToday: 0,
-  lastAdDate: null,
-};
-
-function getState(): CreditState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      setState(INITIAL_STATE);
-      return { ...INITIAL_STATE };
-    }
-    const parsed = JSON.parse(raw);
-    // 필수 필드 검증
-    if (typeof parsed.credits !== 'number' || typeof parsed.freeGenerationsUsed !== 'number') {
-      setState(INITIAL_STATE);
-      return { ...INITIAL_STATE };
-    }
-    return parsed;
-  } catch {
-    setState(INITIAL_STATE);
-    return { ...INITIAL_STATE };
-  }
+function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
 }
 
-function setState(state: CreditState): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
-function withDailyAdsReset(state: CreditState): CreditState {
-  const today = new Date().toISOString().slice(0, 10);
-  if (state.lastAdDate !== today) {
-    return { ...state, adsWatchedToday: 0, lastAdDate: today };
-  }
-  return state;
+async function ensureToken(): Promise<string> {
+  let token = getToken();
+  if (token) return token;
+
+  const res = await fetch(`${API_BASE}/api/session`, { method: 'POST' });
+  if (!res.ok) throw new Error('세션 생성 실패');
+  const data = await res.json();
+  token = data.token;
+  setToken(token!);
+  return token!;
 }
 
-// === Public API ===
-
-export function isInFreePhase(): boolean {
-  return getState().freeGenerationsUsed < CREDIT_POLICY.FREE_GENERATIONS;
-}
-
-export function canGenerate(): boolean {
-  const state = getState();
-  if (state.freeGenerationsUsed < CREDIT_POLICY.FREE_GENERATIONS) return true;
-  if (state.credits >= CREDIT_POLICY.CREDITS_PER_GENERATION) return true;
-  return false;
-}
-
-// 생성 시 크레딧 차감
-export function spendForGeneration(): void {
-  const state = getState();
-  if (state.freeGenerationsUsed < CREDIT_POLICY.FREE_GENERATIONS) {
-    state.freeGenerationsUsed += 1;
-  } else {
-    state.credits -= CREDIT_POLICY.CREDITS_PER_GENERATION;
-  }
-  setState(state);
-}
-
-// 생성 실패 시 크레딧 환불
-export function refundGeneration(): void {
-  const state = getState();
-  if (state.freeGenerationsUsed > 0 &&
-      state.freeGenerationsUsed <= CREDIT_POLICY.FREE_GENERATIONS) {
-    state.freeGenerationsUsed -= 1;
-  } else {
-    state.credits += CREDIT_POLICY.CREDITS_PER_GENERATION;
-  }
-  setState(state);
-}
-
-// 광고 시청 보상
-export function rewardAdWatch(): boolean {
-  let state = getState();
-  state = withDailyAdsReset(state);
-  if (state.adsWatchedToday >= CREDIT_POLICY.MAX_DAILY_ADS) return false;
-  state.credits += CREDIT_POLICY.AD_REWARD_CREDITS;
-  state.adsWatchedToday += 1;
-  setState(state);
-  return true;
-}
-
-// 크레딧 구매
-export function purchaseCredits(planId: PlanId): boolean {
-  const plan = CREDIT_PLANS.find((p) => p.id === planId);
-  if (!plan) return false;
-  const state = getState();
-  state.credits += plan.credits;
-  setState(state);
-  return true;
-}
-
-// 전체 상태 조회 (읽기 전용 — 상태 변경 없음)
-export function getCreditStatus(): CreditStatus {
-  const state = withDailyAdsReset(getState());
-  const freeRemaining = Math.max(0, CREDIT_POLICY.FREE_GENERATIONS - state.freeGenerationsUsed);
-
+function authHeaders(token: string): Record<string, string> {
   return {
-    credits: state.credits,
-    freeGenerationsUsed: state.freeGenerationsUsed,
-    freeRemaining,
-    adsWatchedToday: state.adsWatchedToday,
-    adsRemainingToday: CREDIT_POLICY.MAX_DAILY_ADS - state.adsWatchedToday,
-    canGenerate: freeRemaining > 0 || state.credits >= CREDIT_POLICY.CREDITS_PER_GENERATION,
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
   };
 }
+
+// === Server API 호출 ===
+
+export async function getCreditStatus(): Promise<CreditStatus> {
+  const token = await ensureToken();
+  const res = await fetch(`${API_BASE}/api/credits`, {
+    headers: authHeaders(token),
+  });
+  if (res.status === 401) {
+    // 토큰 만료 — 재발급
+    localStorage.removeItem(TOKEN_KEY);
+    const newToken = await ensureToken();
+    const retry = await fetch(`${API_BASE}/api/credits`, {
+      headers: authHeaders(newToken),
+    });
+    return retry.json();
+  }
+  if (!res.ok) throw new Error('크레딧 조회 실패');
+  return res.json();
+}
+
+export async function purchaseCredits(planId: PlanId): Promise<{ credits: number }> {
+  const token = await ensureToken();
+  const res = await fetch(`${API_BASE}/api/credits/purchase`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ planId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: '구매 실패' }));
+    throw new Error(err.error);
+  }
+  return res.json();
+}
+
+export async function rewardAdWatch(): Promise<{ credits: number; adsToday: number }> {
+  const token = await ensureToken();
+  const res = await fetch(`${API_BASE}/api/credits/ad-reward`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: '광고 보상 실패' }));
+    throw new Error(err.error);
+  }
+  return res.json();
+}
+
+// 서버에서 크레딧을 차감하므로 클라이언트 spend/refund는 불필요
+// generate-image API가 서버에서 크레딧 차감 + 실패 시 자동 환불 처리

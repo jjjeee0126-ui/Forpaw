@@ -1,10 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import HomePage from './pages/HomePage';
 import GeneratingPage from './pages/GeneratingPage';
 import ResultPage from './pages/ResultPage';
 import AdModal from './components/AdModal';
 import CreditShop from './components/CreditShop';
-import { isInFreePhase, canGenerate, spendForGeneration, refundGeneration, getCreditStatus } from './utils/credits';
+import { getCreditStatus } from './utils/credits';
 import type { CreditStatus } from './utils/credits';
 
 export type AppStep = 'home' | 'generating' | 'result';
@@ -24,62 +24,72 @@ export default function App() {
   const [showShop, setShowShop] = useState(false);
   const [showBannerAd, setShowBannerAd] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [creditStatus, setCreditStatus] = useState<CreditStatus>(getCreditStatus());
+  const [creditStatus, setCreditStatus] = useState<CreditStatus | null>(null);
 
-  // 크레딧 게이트: HomePage에서 생성 요청 시
+  // 첫 로드 시 서버에서 크레딧 가져오기
+  const refreshCredits = useCallback(async () => {
+    try {
+      const status = await getCreditStatus();
+      setCreditStatus(status);
+    } catch {
+      // 세션 생성 실패 — 일단 null 유지
+    }
+  }, []);
+
+  useEffect(() => { refreshCredits(); }, [refreshCredits]);
+
+  // 크레딧 게이트
   const handleGenerate = useCallback((photo: string, name: string) => {
     setPetPhoto(photo);
     setPetName(name);
     setErrorMessage('');
 
-    if (isInFreePhase()) {
+    if (!creditStatus) return;
+
+    if (creditStatus.freeRemaining > 0) {
       // 무료: 리워드 광고 모달 필수 + 배너
       setShowBannerAd(true);
       setShowAd(true);
-    } else if (canGenerate()) {
-      // 유료: 모달 없이 바로 생성 + 배너
-      spendForGeneration();
-      setCreditStatus(getCreditStatus());
+    } else if (creditStatus.canGenerate) {
+      // 유료: 바로 생성 + 배너 (서버에서 크레딧 차감)
       setShowBannerAd(true);
       setStep('generating');
     } else {
-      // 크레딧 부족: 충전 모달
       setShowShop(true);
     }
-  }, []);
+  }, [creditStatus]);
 
   const handleAdComplete = useCallback(() => {
     setShowAd(false);
-    spendForGeneration();
-    setCreditStatus(getCreditStatus());
+    // 서버에서 크레딧 차감 — 바로 생성 진행
     setStep('generating');
   }, []);
 
   const handleShopClose = useCallback(() => {
     setShowShop(false);
-    setCreditStatus(getCreditStatus());
-  }, []);
+    refreshCredits();
+  }, [refreshCredits]);
 
   const handleComplete = useCallback((res: GenerationResult) => {
     setResult(res);
     setShowBannerAd(false);
     setStep('result');
-  }, []);
+    refreshCredits();
+  }, [refreshCredits]);
 
-  // 생성 실패: 크레딧 환불 + 에러 메시지 전달
+  // 생성 실패 — 서버에서 자동 환불됨
   const handleError = useCallback((message: string) => {
-    refundGeneration();
     setShowBannerAd(false);
     setErrorMessage(message);
-    setCreditStatus(getCreditStatus());
+    refreshCredits();
     setStep('home');
-  }, []);
+  }, [refreshCredits]);
 
   const handleBackToHome = useCallback(() => {
     setShowBannerAd(false);
-    setCreditStatus(getCreditStatus());
+    refreshCredits();
     setStep('home');
-  }, []);
+  }, [refreshCredits]);
 
   return (
     <>
@@ -121,7 +131,7 @@ export default function App() {
       {showShop && (
         <CreditShop
           onClose={handleShopClose}
-          onUpdate={() => setCreditStatus(getCreditStatus())}
+          onUpdate={refreshCredits}
         />
       )}
     </>
