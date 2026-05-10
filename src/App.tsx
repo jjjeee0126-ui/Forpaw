@@ -31,11 +31,11 @@ export default function App() {
     setPetName(name);
 
     if (isInFreePhase()) {
-      // 무료 기간: 광고 모달 필수
-      setShowBannerAd(false);
+      // 무료: 리워드 광고 모달 필수 + 배너
+      setShowBannerAd(true);
       setShowAd(true);
     } else if (canGenerate()) {
-      // 유료: 바로 생성 + 배너 광고
+      // 유료: 모달 없이 바로 생성 + 배너
       spendForGeneration();
       setCreditStatus(getCreditStatus());
       setShowBannerAd(true);
@@ -50,7 +50,7 @@ export default function App() {
     setShowAd(false);
     spendForGeneration();
     setCreditStatus(getCreditStatus());
-    setShowBannerAd(false);
+    // 배너는 유지한 채로 생성 진행
     setStep('generating');
   }, []);
 
