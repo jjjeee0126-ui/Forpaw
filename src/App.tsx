@@ -72,7 +72,7 @@ export default function App() {
 
   const handleComplete = useCallback((res: GenerationResult) => {
     setResult(res);
-    setShowBannerAd(false);
+    // 배너 광고는 ResultPage에서 표시 (showBannerAd 유지)
     setStep('result');
     refreshCredits();
   }, [refreshCredits]);
@@ -81,6 +81,13 @@ export default function App() {
   const handleError = useCallback((message: string) => {
     setShowBannerAd(false);
     setErrorMessage(message);
+    refreshCredits();
+    setStep('home');
+  }, [refreshCredits]);
+
+  // 생성 중 취소
+  const handleCancel = useCallback(() => {
+    setShowBannerAd(false);
     refreshCredits();
     setStep('home');
   }, [refreshCredits]);
@@ -107,15 +114,16 @@ export default function App() {
         <GeneratingPage
           petPhoto={petPhoto}
           petName={petName}
-          showBannerAd={showBannerAd}
           onComplete={handleComplete}
           onError={handleError}
+          onCancel={handleCancel}
         />
       )}
       {step === 'result' && (
         <ResultPage
           result={result!}
           petName={petName}
+          showBannerAd={showBannerAd}
           onBack={handleBackToHome}
         />
       )}

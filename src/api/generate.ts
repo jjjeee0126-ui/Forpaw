@@ -94,6 +94,7 @@ function buildPrompt(petName: string): string {
 export async function generateKeyringImage(
   photoDataUrl: string,
   petName: string,
+  signal?: AbortSignal,
 ): Promise<GenerationResult> {
   const prompt = buildPrompt(petName);
 
@@ -110,6 +111,7 @@ export async function generateKeyringImage(
       prompt,
       outputSize: '1024x1024',
     }),
+    signal,
   });
 
   const data = await parseJsonResponse(response);

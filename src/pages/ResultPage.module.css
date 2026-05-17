@@ -106,3 +106,17 @@
 .backButton:active {
   transform: scale(0.97);
 }
+
+.bannerAd {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--forpaw-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-top: 1px solid var(--forpaw-border);
+}

@@ -6,9 +6,9 @@ import styles from './GeneratingPage.module.css';
 interface GeneratingPageProps {
   petPhoto: string;
   petName: string;
-  showBannerAd?: boolean;
   onComplete: (result: GenerationResult) => void;
   onError: (message: string) => void;
+  onCancel: () => void;
 }
 
 const TIPS = [
@@ -22,14 +22,15 @@ const TIPS = [
 export default function GeneratingPage({
   petPhoto,
   petName,
-  showBannerAd = false,
   onComplete,
   onError,
+  onCancel,
 }: GeneratingPageProps) {
   const [tipIndex, setTipIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const calledRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -49,15 +50,27 @@ export default function GeneratingPage({
     if (calledRef.current) return;
     calledRef.current = true;
 
-    generateKeyringImage(petPhoto, petName)
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    generateKeyringImage(petPhoto, petName, controller.signal)
       .then((result) => {
+        if (controller.signal.aborted) return;
         setProgress(100);
         setTimeout(() => onComplete(result), 400);
       })
       .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setErrorMsg(err instanceof Error ? err.message : '이미지 생성에 실패했어요');
       });
+
+    return () => { controller.abort(); };
   }, [petPhoto, petName, onComplete]);
+
+  const handleCancel = () => {
+    abortRef.current?.abort();
+    onCancel();
+  };
 
   if (errorMsg) {
     return (
@@ -109,14 +122,11 @@ export default function GeneratingPage({
           <span className={styles.dot} style={{ animationDelay: '0.2s' }} />
           <span className={styles.dot} style={{ animationDelay: '0.4s' }} />
         </div>
-      </div>
 
-      {showBannerAd && (
-        <div className={styles.bannerAd}>
-          <span className={styles.bannerLabel}>AD</span>
-          <div className={styles.bannerContent}>광고 배너 영역</div>
-        </div>
-      )}
+        <button type="button" className={styles.cancelButton} onClick={handleCancel}>
+          취소하고 돌아가기
+        </button>
+      </div>
     </div>
   );
 }

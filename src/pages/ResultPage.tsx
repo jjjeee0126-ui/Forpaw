@@ -5,10 +5,11 @@ import styles from './ResultPage.module.css';
 interface ResultPageProps {
   result: GenerationResult;
   petName: string;
+  showBannerAd?: boolean;
   onBack: () => void;
 }
 
-export default function ResultPage({ result, petName, onBack }: ResultPageProps) {
+export default function ResultPage({ result, petName, showBannerAd = false, onBack }: ResultPageProps) {
   const [saved, setSaved] = useState(false);
   const [shared, setShared] = useState(false);
 
@@ -117,6 +118,13 @@ export default function ResultPage({ result, petName, onBack }: ResultPageProps)
       <button type="button" className={styles.backButton} onClick={onBack}>
         돌아가기
       </button>
+
+      {showBannerAd && (
+        <div className={styles.bannerAd}>
+          <span className={styles.bannerLabel}>AD</span>
+          <div className={styles.bannerContent}>광고 배너 영역</div>
+        </div>
+      )}
     </div>
   );
 }
