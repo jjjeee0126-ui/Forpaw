@@ -5,7 +5,7 @@ export default defineConfig({
   brand: {
     displayName: 'ForPaw',
     primaryColor: '#FF6B35',
-    icon: '',
+    icon: 'https://for-paw.vercel.app/icon.png',
   },
   web: {
     host: 'localhost',

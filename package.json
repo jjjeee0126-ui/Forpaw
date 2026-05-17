@@ -11,7 +11,7 @@
     "server": "node server/index.js"
   },
   "dependencies": {
-    "@apps-in-toss/web-framework": "^1.0.0",
+    "@apps-in-toss/web-framework": "^2.5.1",
     "@toss/tds-mobile": "^2.3.0",
     "@upstash/redis": "^1.38.0",
     "react": "^19.0.0",
@@ -19,6 +19,7 @@
     "react-router-dom": "^7.1.0"
   },
   "devDependencies": {
+    "@apps-in-toss/cli": "^2.5.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
